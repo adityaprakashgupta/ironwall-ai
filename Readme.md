@@ -86,7 +86,7 @@ Detects if the provided audio is AI-generated.
 ```json
 {
   "language": "English",
-  "audioFormat": "wav",
+  "audioFormat": "mp3",
   "audioBase64": "<base64_encoded_audio_string>"
 }
 ```
