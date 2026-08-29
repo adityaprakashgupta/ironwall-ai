@@ -6,3 +6,4 @@ tensorflow[and-cuda]
 numpy
 python-multipart
 soundfile
+huggingface-hub
