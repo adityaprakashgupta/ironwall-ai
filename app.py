@@ -115,47 +115,10 @@ def build_chunk_batch(jobs):
 
 
 # -----------------------------
-# Configuration
-# -----------------------------
-API_KEY_NAME = "x-api-key"
-API_KEYS = [
-    "apg_Tnz8en2RtJMKzzxcayQG8MzFBgGlpYOWw6lZUmF8b7A",
-    "apg_KzAK1Bj6MM2SziV5nprkWTVqD2pL7U2mI8czwpLbqGw",
-]
-SUPPORTED_LANGUAGES = {"Tamil", "English", "Hindi", "Malayalam", "Telugu"}
-
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
-
-
-async def verify_api_key(api_key: str = Security(api_key_header)):
-    if api_key not in API_KEYS:
-        raise HTTPException(
-            status_code=403, detail="Invalid API key or malformed request"
-        )
-    return api_key
-
-
-# -----------------------------
 # Request / Response schema
 # -----------------------------
 class PredictRequest(BaseModel):
-    language: str
-    audioFormat: str
     audioBase64: str
-
-    @field_validator("language")
-    @classmethod
-    def validate_language(cls, v):
-        if v not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Language must be one of {SUPPORTED_LANGUAGES}")
-        return v
-
-    @field_validator("audioFormat")
-    @classmethod
-    def validate_format(cls, v):
-        if v.lower() != "mp3":
-            raise ValueError("audioFormat must be 'mp3'")
-        return v
 
     def convert_to_bytes(self):
         return base64.b64decode(self.audioBase64)
@@ -163,7 +126,6 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     status: str = "success"
-    language: str
     classification: str
     confidenceScore: float
     explanation: str
@@ -208,7 +170,6 @@ async def inference_worker():
                 if not job.future.done():
                     job.future.set_result(
                         PredictResponse(
-                            language=job.req.language,
                             classification=result["label"],
                             confidenceScore=result["confidence"],
                             explanation=result["explanation"],
@@ -230,7 +191,7 @@ async def inference_worker():
 # Predict endpoint (polite waiting)
 # -----------------------------
 @app.post("/api/voice-detection", response_model=PredictResponse)
-async def predict(req: PredictRequest, api_key: str = Security(verify_api_key)):
+async def predict(req: PredictRequest):
     if inference_queue.full():
         raise HTTPException(
             status_code=503, detail="Server busy. Queue full, retry later."
